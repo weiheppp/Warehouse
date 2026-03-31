@@ -1,0 +1,38 @@
+# Web Framework Core
+Flask
+
+flask-cors
+
+# WSGI Production Server (Used for deployment)
+gunicorn
+
+# Database Driver for MySQL
+mysql-connector-python
+
+# HTTP Client for external service calls (e.g., Gemini API)
+requests
+
+# Local Configuration Loader (For local development only)
+python-dotenv
+
+# Optional: Google's Official AI SDK (Include only if using this SDK)
+google-genai
+
+# Database for pymongo
+pymongo
+
+#Dependency for auto check suggestion
+schedule
+
+#HTTP client for external service calls
+requests
+
+# draw chart
+matplotlib
+
+# Machine Learning
+scikit-learn
+pandas
+joblib
+# Additional utilities
+Pillow

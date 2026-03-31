@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analysis History Viewer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+<style>
+/* Global font and base styles */
+body {
+font-family: 'Inter', sans-serif;
+background: linear-gradient(135deg, #f9f9fb 0%, #f0f2f5 100%);
+color: #1f2937;
+}
+
+/* Content fade-in and slide-up animation */
+@keyframes fadeInSlideUp {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+/* Apple-style card */
+.apple-card {
+background-color: #ffffff;
+padding: 1.5rem;
+border-radius: 16px;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+border: 1px solid #e7e9eb;
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+animation: fadeInSlideUp 0.8s ease-out both;
+}
+
+.apple-card:hover {
+box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+transform: translateY(-2px);
+}
+
+/* Table styles */
+.data-table th {
+/* Ensure headers are left-aligned for better spacing, except for the Action column */
+@apply px-4 py-3 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200;
+}
+.data-table td {
+/* Default cell style: text-sm, top-aligned */
+@apply px-4 py-3 text-sm text-gray-700 border-b border-gray-100 align-top;
+}
+.data-table tbody tr:hover {
+background-color: #f0f0f5;
+}
+
+/* Delete button style */
+.delete-btn {
+@apply bg-red-500 text-white p-2 rounded-full shadow-md hover:bg-red-600 transition duration-150 transform hover:scale-105;
+}
+
+/* Loading indicator animation */
+.spinner {
+border: 4px solid rgba(0, 0, 0, 0.1);
+border-top: 4px solid #3b82f6; /* Blue */
+border-radius: 50%;
+width: 30px;
+height: 30px;
+animation: spin 1s linear infinite;
+}
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+/* Collapsible text container style (removed internal button) */
+.collapsible-text-container {
+    @apply text-xs bg-gray-50 p-2 rounded relative;
+    white-space: pre-wrap;
+    word-break: break-word;
+    /* Limit height for collapse effect */
+    max-height: 90px;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out;
+    /* Ensure content inside long text cells is left-aligned for readability */
+    text-align: left;
+}
+
+/* Expanded state: set high height, and allow content to be visible */
+.collapsible-text-container.expanded {
+    max-height: 5000px;
+    overflow: visible;
+}
+
+/* Fade-out gradient effect when collapsed */
+.collapsible-text-container:not(.expanded)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    /* Gradient from transparent to background color */
+    background: linear-gradient(to top, rgba(249, 250, 251, 1) 10%, rgba(249, 250, 251, 0) 100%);
+    pointer-events: none;
+}
+
+/* Row detail toggle button style */
+.row-toggle-btn {
+    @apply p-2 rounded-full text-blue-600 hover:bg-blue-100 transition duration-150 transform;
+}
+.row-toggle-btn.expanded {
+    @apply bg-blue-500 text-white;
+}
+
+</style>
+</head>
+<body class="p-4 md:p-10">
+
+<!-- Navigation Bar -->
+<nav class="mb-8 p-4 bg-white rounded-xl shadow-lg shadow-gray-200/40 border border-gray-100 flex space-x-6 text-sm font-semibold text-gray-600">
+    <a href="/Warehouse/" class="hover:text-gray-900 transition duration-150">Home</a>
+    <a href="/Warehouse/ai_suggestion.html" class="hover:text-gray-900 transition duration-150">AI Suggestion</a>
+    <a href="/Warehouse/ml_pricing.html" class="hover:text-gray-900 transition duration-150">ML Pricing Strategy</a>
+<!-- Current page link -->
+    <a href="/Warehouse/analysis_reports.html" class="text-blue-600 border-b-2 border-blue-600 pb-1">Analysis History</a>
+</nav>
+
+<header class="mb-10">
+<h1 class="text-5xl font-extrabold text-gray-900 mb-2 tracking-tight">
+Analysis History Viewer
+</h1>
+<p class="text-lg text-gray-500">
+View individual recommendation entries fetched from the backend API (<code class="text-xs bg-gray-100 p-1 rounded">/api/mongodb/logs</code>).
+</p>
+</header>
+
+<div class="space-y-6">
+<!-- Action Bar: Refresh Button -->
+<div class="flex justify-end">
+<button id="refresh-btn" class="px-5 py-3 bg-white text-gray-700 border border-gray-300 font-semibold rounded-xl shadow-md hover:bg-gray-100 transition duration-150 transform hover:-translate-y-0.5 flex items-center space-x-2">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+<span>Refresh Data</span>
+</button>
+</div>
+
+<!-- Document List Card -->
+<div class="apple-card p-0 overflow-x-auto" style="animation-delay: 0.1s;">
+<div class="p-6">
+<h2 class="text-xl font-bold text-gray-800">All Recommendation Entries</h2>
+</div>
+
+<!-- Loading Indicator -->
+<div id="status-message" class="flex flex-col items-center justify-center py-16 text-lg text-gray-500 font-medium">
+<div id="loading-spinner" class="spinner mb-4 hidden"></div>
+Loading data from backend API...
+</div>
+
+<!-- Table Container -->
+<table class="min-w-full divide-y divide-gray-200 data-table hidden" id="log-table">
+<thead>
+<tr>
+    <!-- Column widths maintained from previous version (Total 12/12) -->
+    <th class="w-2/12">MongoDB ID</th>
+    <th class="w-1/12">Timestamp</th>
+    <th class="w-1/12">Index</th>
+    <th class="w-1/12">Product Name</th>
+    <th class="w-1/12">Supplier Name</th>
+    <th class="w-2/12">Analysis</th>
+    <th class="w-2/12">Promotional Strategy</th>
+    <!-- New Details Toggle column -->
+    <th class="w-1/12 text-center">Details</th>
+    <th class="w-1/12 text-center">Action</th>
+</tr>
+</thead>
+<tbody id="log-table-body" class="divide-y divide-gray-100">
+<!-- Logs will be inserted here by JavaScript -->
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Custom Modal (replaces alert/confirm) -->
+<div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+<div class="bg-white apple-card max-w-sm mx-auto p-6 text-center transform scale-100 transition-all duration-300">
+<h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4"></h3>
+<p id="modal-message" class="text-gray-600 mb-6"></p>
+<div class="flex justify-center space-x-4">
+<button id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150 hidden">Cancel</button>
+<button id="modal-confirm-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-150">Confirm / Close</button>
+</div>
+</div>
+</div>
+
+<script>
+// API Endpoints
+const API_BASE_URL = 'https://inventory-analysis-api.onrender.com';
+const API_LOGS_URL = `${API_BASE_URL}/api/mongodb/logs`;
+const API_DELETE_URL = `{${API_BASE_URL}}/api/mongodb/delete/`;
+
+const statusMessage = document.getElementById('status-message');
+const loadingSpinner = document.getElementById('loading-spinner');
+const logTable = document.getElementById('log-table');
+const logTableBody = document.getElementById('log-table-body');
+const refreshBtn = document.getElementById('refresh-btn');
+
+/**
+* Shows a custom modal dialog
+* @param {string} title - Modal title
+* @param {string} message - Modal message content
+* @param {boolean} isConfirmation - Whether to show confirm/cancel buttons
+* @returns {Promise<boolean>} Resolves to true if confirmed, false otherwise
+*/
+function showModal(title, message, isConfirmation = false) {
+return new Promise(resolve => {
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const confirmBtn = document.getElementById('modal-confirm-btn');
+const cancelBtn = document.getElementById('modal-cancel-btn');
+
+modalTitle.textContent = title;
+modalMessage.textContent = message;
+modal.classList.remove('hidden');
+modal.classList.add('flex');
+
+// Configure buttons based on confirmation requirement
+cancelBtn.classList.toggle('hidden', !isConfirmation);
+cancelBtn.textContent = 'Cancel';
+confirmBtn.textContent = isConfirmation ? 'Confirm Deletion' : 'Confirm / Close';
+confirmBtn.classList.toggle('bg-red-500', isConfirmation);
+confirmBtn.classList.toggle('hover:bg-red-600', isConfirmation);
+confirmBtn.classList.toggle('bg-blue-500', !isConfirmation);
+confirmBtn.classList.toggle('hover:bg-blue-600', !isConfirmation);
+
+
+const cleanup = (result) => {
+modal.classList.add('hidden');
+modal.classList.remove('flex');
+confirmBtn.onclick = null;
+cancelBtn.onclick = null;
+resolve(result);
+};
+
+confirmBtn.onclick = () => cleanup(true);
+cancelBtn.onclick = () => cleanup(false);
+});
+}
+;
+/**
+* Helper function to create the collapsible text cell (without internal button)
+* @param {string} text - The full text content.
+* @param {string} docId - The document ID for unique HTML ID creation.
+* @param {string} fieldName - The field name (e.g., 'analysis' or 'strategy').
+* @returns {string} The HTML string for the cell content.
+*/
+function createCollapsibleCell(text, docId, fieldName) {
+    text = text || 'No details available';
+
+    const formattedText = text.trim();
+    const uniqueId = `toggle-target-${docId}-${fieldName}`;
+
+    // Use this container structure regardless of content length, controlled by the external button
+    // The container's initial state is collapsed (max-height: 90px)
+    return `
+        <div class="collapsible-text-container" id="${uniqueId}">
+            <div class="collapsible-text-content">
+                ${formattedText}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Toggles the expanded/collapsed state of all collapsible cells in a given row.
+ * @param {string} docId - The document ID used to find all collapsible elements for the row.
+ * @param {HTMLElement} button - The button element that triggered the action.
+ */
+function toggleRowDetails(docId, button) {
+    // Find all collapsible elements in this row
+    const analysisContainer = document.getElementById(`toggle-target-${docId}-analysis`);
+    const strategyContainer = document.getElementById(`toggle-target-${docId}-strategy`);
+
+    const containers = [analysisContainer, strategyContainer].filter(el => el);
+
+    if (containers.length === 0) return;
+
+    // Check if the first container (if exists) is currently expanded to determine the next state
+    const isCurrentlyExpanded = analysisContainer ? analysisContainer.classList.contains('expanded') : false;
+
+    // Toggle the state of all containers
+    containers.forEach(container => {
+        container.classList.toggle('expanded', !isCurrentlyExpanded);
+    });
+
+    // Toggle the button's icon and class
+    button.classList.toggle('expanded', !isCurrentlyExpanded);
+    const icon = button.querySelector('svg');
+
+    if (!isCurrentlyExpanded) {
+        // Expanded -> Show Arrow Up icon
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>`;
+        button.title = "Collapse Details";
+    } else {
+        // Collapsed -> Show Arrow Down icon
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>`;
+        button.title = "Expand Details";
+    }
+}
+
+
+// API Call: Retrieves all MongoDB log documents
+async function loadLogs() {
+logTable.classList.add('hidden');
+statusMessage.classList.remove('hidden');
+loadingSpinner.classList.remove('hidden');
+statusMessage.querySelector('div:last-child').textContent = 'Loading data from backend API...';
+
+try {
+const response = await fetch(API_LOGS_URL);
+if (!response.ok) {
+throw new Error(`HTTP Error! Status: ${response.status}`);
+}
+const logs = await response.json();
+
+if (!Array.isArray(logs)) {
+throw new Error('Invalid API response structure (not an array).');
+}
+
+renderLogs(logs);
+
+} catch (error) {
+console.error("Error loading documents:", error);
+statusMessage.querySelector('div:last-child').textContent = `Load Failed: ${error.message}`;
+logTable.classList.add('hidden');
+} finally {
+loadingSpinner.classList.add('hidden');
+}
+}
+
+
+//API Call: Deletes a document by ID
+async function deleteLog(docId) {
+const confirmed = await showModal(
+"Confirm Deletion",
+`Are you sure you want to permanently delete the log document with MongoDB ID ${docId}? This action cannot be undone.`,
+true // isConfirmation = true
+);
+
+if (!confirmed) return;
+
+loadingSpinner.classList.remove('hidden');
+refreshBtn.disabled = true;
+
+try {
+const response = await fetch(API_DELETE_URL + docId, {
+method: 'DELETE',
+headers: { 'Content-Type': 'application/json' }
+});
+
+if (!response.ok) {
+const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+throw new Error(errorData.error || errorData.message || `HTTP Error! Status: ${response.status}`);
+}
+
+await showModal("Deletion Successful", `Document with ID ${docId} has been successfully deleted.`, false);
+// Refresh the list
+loadLogs();
+
+} catch (error) {
+console.error("Error deleting document:", error);
+showModal("Deletion Failed", `An error occurred while deleting document ${docId}: ${error.message}`, false);
+} finally {
+loadingSpinner.classList.add('hidden');
+refreshBtn.disabled = false;
+}
+}
+
+/**
+* Renders the log table
+* @param {Array} logs - Array of flattened recommendation entries
+*/
+function renderLogs(logs) {
+logTableBody.innerHTML = '';
+
+if (logs.length === 0) {
+statusMessage.querySelector('div:last-child').textContent = 'No recommendation entries found.';
+logTable.classList.add('hidden');
+statusMessage.classList.remove('hidden');
+return;
+}
+
+statusMessage.classList.add('hidden');
+logTable.classList.remove('hidden');
+
+logs.forEach(log => {
+    const row = logTableBody.insertRow();
+    row.style.animation = 'fadeInSlideUp 0.5s ease-out both';
+    row.style.animationDelay = `${Math.random() * 0.2}s`;
+
+    const id = log._id || 'N/A'; // Top-level ID
+    const index = log.index;
+    const productName = log.product_name || 'N/A';
+    const supplyName = log.supply_name || 'N/A';
+    const analysis = log.analysis || 'No detailed analysis';
+    const strategy = log.promotional_strategy || 'No strategy suggested';
+
+
+    // 1. MongoDB ID (w-2/12) - Center-aligned, consistent text-sm, showing full ID with wrapping (break-all)
+    const idCell = row.insertCell();
+    idCell.classList.add('text-center');
+    // 使用 break-all 确保完整的 24 字符 ID 可以在不破坏表格布局的情况下自动换行显示
+    idCell.innerHTML = `<span class="text-sm text-gray-500 break-all" title="${id}">${id}</span>`;
+
+
+    // 2. Timestamp (w-2/12) - Center-aligned
+    const timestampCell = row.insertCell();
+    timestampCell.classList.add('text-center');
+    const date = new Date(log.timestamp);
+    // Use 'en-US' locale for date formatting in English version
+    timestampCell.textContent = isNaN(date) ? 'Invalid Date' : date.toLocaleString('en-US', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    });
+
+    // 3. Index (w-1/12) - Center-aligned
+    const indexCell = row.insertCell();
+    indexCell.classList.add('text-center');
+    indexCell.textContent = index;
+
+
+    // 4. Product Name (w-2/12) - Center-aligned
+    const productCell = row.insertCell();
+    productCell.classList.add('text-center');
+    productCell.innerHTML = `<span class="font-semibold text-gray-800">${productName}</span>`;
+
+
+    // 5. Supplier Name (w-1/12) - Center-aligned
+    const supplierCell = row.insertCell();
+    supplierCell.classList.add('text-center');
+    supplierCell.textContent = supplyName;
+
+
+    // 6. Analysis (w-1/12) - Remains LEFT-ALIGNED for readability (collapsible)
+    const analysisCell = row.insertCell();
+    analysisCell.innerHTML = createCollapsibleCell(analysis, id, 'analysis');
+
+
+    // 7. Promotional Strategy (w-1/12) - Remains LEFT-ALIGNED for readability (collapsible)
+    const strategyCell = row.insertCell();
+    strategyCell.innerHTML = createCollapsibleCell(strategy, id, 'strategy');
+
+
+    // 8. Details Toggle (w-1/12) - Center-aligned
+    const toggleCell = row.insertCell();
+    toggleCell.classList.add('text-center');
+    const toggleButton = document.createElement('button');
+    toggleButton.classList.add('row-toggle-btn');
+    toggleButton.title = "Expand Details";
+    // Initial icon is Arrow Down
+    toggleButton.innerHTML = `
+        <svg class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    `;
+    // Bind to the new row-level toggle function
+    toggleButton.onclick = function() { toggleRowDetails(id, this); };
+    toggleCell.appendChild(toggleButton);
+
+
+    // 9. Action (w-1/12) - Center-aligned
+    const actionCell = row.insertCell();
+    actionCell.classList.add('text-center');
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('delete-btn');
+    deleteButton.title = `Delete Parent Document ${id}`;
+    deleteButton.innerHTML = `
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+    `;
+    deleteButton.onclick = () => deleteLog(id);
+    actionCell.appendChild(deleteButton);
+});
+}
+
+
+// Initial load and event listeners
+window.onload = function() {
+loadLogs();
+refreshBtn.addEventListener('click', loadLogs);
+};
+</script>
+</body>
+</html>

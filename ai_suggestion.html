@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Suggested Recommendations</title>
+    <!-- Load Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Set global font to Inter for clean aesthetics, using a silver/white theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f8f8; /* Very light silver-gray background */
+        }
+        /* Custom table styles for readability */
+        .data-table th {
+            @apply px-4 py-3 bg-gray-100 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider;
+        }
+        .data-table td {
+            @apply px-4 py-3 text-sm text-gray-700 border-b border-gray-200;
+        }
+        /* Apple-style card: clean white background, subtle shadow, soft rounded corners */
+        .apple-card {
+            @apply bg-white p-6 rounded-xl shadow-lg shadow-gray-200/40 border border-gray-100 transition-all duration-300 hover:shadow-xl hover:shadow-gray-200/60;
+        }
+        /* Chart image styling */
+        .chart-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        /* Loading placeholder */
+        .chart-loading {
+            @apply flex items-center justify-center h-64 text-gray-400;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <!-- Navigation Bar -->
+    <nav class="mb-8 p-4 bg-white rounded-xl shadow-lg shadow-gray-200/40 border border-gray-100 flex space-x-6 text-sm font-semibold text-gray-600">
+        <a href="/Warehouse/" class="hover:text-gray-900 transition duration-150">Home</a>
+        <a href="/Warehouse/ai_suggestion.html" class="text-blue-600 border-b-2 border-blue-600 pb-1">AI Suggestion</a>
+        <a href="/Warehouse/ml_pricing.html" class="hover:text-gray-900 transition duration-150">ML Pricing Strategy</a>
+        <a href="/Warehouse/analysis_reports.html" class="hover:text-gray-900 transition duration-150">Analysis History</a>
+    </nav>
+
+    <!-- Header -->
+    <header class="mb-10">
+        <div class="flex items-center mb-2">
+            <svg class="w-8 h-8 mr-3 text-gray-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-500 via-gray-900 to-gray-500">
+                AI Suggested Recommendations
+            </h1>
+        </div>
+        <p class="text-gray-500 pl-11" id="report-metadata">
+            Analysis Date: <span id="analysis-date" class="font-medium text-gray-600">Loading...</span> |
+            Analysis Period: <span id="analysis-period" class="font-medium text-gray-600">Loading...</span>
+        </p>
+    </header>
+
+    <!-- Loading/Error Message -->
+    <div id="loading" class="text-center p-12 apple-card">
+        <svg class="animate-spin h-6 w-6 text-gray-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-gray-600">Loading data...</p>
+    </div>
+    <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+        <strong class="font-bold">Data Loading Failed!</strong>
+        <span class="block sm:inline" id="error-details"></span>
+        <p class="text-sm mt-2">Please check if the backend service (Flask) is running correctly and ensure the data structure is valid.</p>
+    </div>
+
+    <!-- Main Content -->
+    <main id="content" class="space-y-12 hidden">
+
+        <!-- 1. AI Promotional Strategy Suggestions -->
+        <section>
+            <h2 class="text-3xl font-bold text-gray-900 mb-6 border-b pb-2">AI Promotional Strategy Recommendations</h2>
+            <div class="apple-card p-8 overflow-x-auto text-lg" id="suggestions-container">
+                <!-- Suggestions table will be rendered here -->
+            </div>
+        </section>
+
+        <!-- 2. Database Analysis Charts (Python Generated) -->
+        <section>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Database Analysis Visualization</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Chart 1: Top 5 Slowest-Selling Products (Bar Chart) -->
+                <div class="apple-card mb-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">Top 5 Products with Lowest Sell-Through Rates</h3>
+                    <div id="chart1-container" class="chart-loading">
+                        <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Price vs Days in Stock (Scatter Plot) -->
+                <div class="apple-card">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">Price vs Days in Stock Analysis</h3>
+                    <div id="chart2-container" class="chart-loading">
+                        <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Chart 3: Warehouse Inventory Distribution (Pie Chart) -->
+                <div class="apple-card">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">Warehouse Inventory Distribution</h3>
+                    <div id="chart3-container" class="chart-loading">
+                        <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 3. Detailed Slow-Moving Products Table -->
+        <section>
+            <h2 class="text-xl font-bold text-gray-800 mb-6 border-b pb-2">Detailed Slow-Moving Products List</h2>
+            <div class="apple-card p-0 overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 data-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th>Product Name (ID)</th>
+                            <th>Manufacturer/Supplier</th>
+                            <th>Days In Stock</th>
+                            <th>Current Stock</th>
+                            <th>Supply Quantity</th>
+                            <th>Price</th>
+                            <th>Sell-Through Rate</th>
+                            <th>Warehouse ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body" class="divide-y divide-gray-200">
+                        <tr><td colspan="8" class="text-center py-8 text-gray-500">Loading slow-moving product data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module">
+        // Firebase Auth Setup
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            if (initialAuthToken) {
+                signInWithCustomToken(auth, initialAuthToken).catch(e => {
+                    console.error("Firebase Custom Auth failed, signing in anonymously:", e);
+                    signInAnonymously(auth);
+                });
+            } else {
+                signInAnonymously(auth);
+            }
+        }
+
+        /**
+         * Parses Markdown table
+         */
+        function parseMarkdownTable(markdownContent) {
+            if (!markdownContent) return "<p class='text-gray-500'>No promotional suggestions available.</p>";
+
+            const lines = markdownContent.split('\n');
+            const tableStart = lines.findIndex(line => line.trim().startsWith('|') && !line.includes('---'));
+            if (tableStart === -1) return "<p class='text-gray-500'>Unable to parse suggestions table content.</p>";
+
+            const headerLine = lines[tableStart];
+            const separatorLine = lines[tableStart + 1];
+            if (!separatorLine || !separatorLine.includes('---')) return "<p class='text-gray-500'>Unable to parse suggestions table format.</p>";
+
+            const bodyLines = lines.slice(tableStart + 2);
+            let headers = headerLine.split('|').map(h => h.trim()).filter(h => h);
+
+            const tableHeaderHtml = `
+                <thead>
+                    <tr class="bg-gray-100">
+                        ${headers.map(h => `<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">${h.replace(/\*\*/g, '')}</th>`).join('')}
+                    </tr>
+                </thead>
+            `;
+
+            let tableBodyHtml = '<tbody>';
+
+            for (const line of bodyLines) {
+                if (!line.trim().startsWith('|')) continue;
+
+                const cells = line.split('|').map(c => c.trim()).filter((c, i, arr) => (i > 0 && i < arr.length - 1));
+
+                if (cells.length !== headers.length) continue;
+
+                let rowHtml = '<tr>';
+                cells.forEach((cell, index) => {
+                    let cellContent = cell;
+
+                    if (index === 2) {
+                        cellContent = cellContent.replace(/<br>/g, '<br/>');
+                        const listItems = cellContent.split('<br/>').map(item => item.trim()).filter(item => item);
+
+                        if (listItems.length > 0) {
+                            cellContent = '<ul class="list-disc pl-5 space-y-1">';
+                            listItems.forEach(item => {
+                                const cleanItem = item.replace(/^\s*\d+\.\s*/, '');
+                                const htmlItem = cleanItem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                cellContent += `<li class="text-base leading-snug">${htmlItem}</li>`;
+                            });
+                            cellContent += '</ul>';
+                        }
+                    } else {
+                        cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    }
+
+                    rowHtml += `<td class="px-4 py-3 align-top border-b border-gray-200">${cellContent}</td>`;
+                });
+                rowHtml += '</tr>';
+                tableBodyHtml += rowHtml;
+            }
+
+            tableBodyHtml += '</tbody>';
+            return `<table class="min-w-full divide-y divide-gray-200">${tableHeaderHtml}${tableBodyHtml}</table>`;
+        }
+
+        /**
+         * Renders the detailed table of slow-moving products
+         */
+        function renderProductTable(slowMovingProducts) {
+            const tbody = document.getElementById('products-table-body');
+            tbody.innerHTML = '';
+
+            if (!slowMovingProducts || slowMovingProducts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500">Great! No slow-moving products found currently.</td></tr>';
+                return;
+            }
+
+            const currencyFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const percentFormat = new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            slowMovingProducts.forEach(product => {
+                const row = tbody.insertRow();
+                const sellThrough = parseFloat(product.sell_through_rate) / 100;
+
+                if (sellThrough <= -0.02) {
+                    row.classList.add('bg-red-50');
+                } else if (sellThrough < 0) {
+                    row.classList.add('bg-gray-100');
+                } else {
+                    row.classList.add('hover:bg-gray-50');
+                }
+
+                row.insertCell().innerHTML = `
+                    <div class="font-semibold text-gray-900">${product.product_name}</div>
+                    <div class="text-gray-500 text-xs">${product.product_id}</div>
+                `;
+                row.insertCell().innerHTML = `
+                    <div class="font-medium">${product.manufacturer}</div>
+                    <div class="text-gray-500 text-xs">Supp: ${product.supplier_id}</div>
+                `;
+                row.insertCell().textContent = product.days_in_stock || 'N/A';
+                row.insertCell().textContent = product.stock_quantity || '0';
+                row.insertCell().textContent = product.supply_quantity || '0';
+                row.insertCell().textContent = currencyFormat.format(parseFloat(product.price) || 0);
+                const sellThroughCell = row.insertCell();
+                sellThroughCell.textContent = isNaN(sellThrough) ? 'N/A' : percentFormat.format(sellThrough);
+                sellThroughCell.classList.add('font-bold');
+                row.insertCell().textContent = product.warehouse_id || 'N/A';
+            });
+        }
+
+        /**
+         * Load Python-generated charts from Flask API
+         */
+        async function loadCharts() {
+            const API_BASE_URL = 'https://inventory-analysis-api.onrender.com'
+
+            try {
+                // Load Chart 1: Bar Chart
+                const response1 = await fetch(`${API_BASE_URL}/api/charts/bar-top5`);
+                if (response1.ok) {
+                    const data1 = await response1.json();
+                    if (data1.image) {
+                        document.getElementById('chart1-container').innerHTML =
+                            `<img src="${data1.image}" alt="Bar Chart" class="chart-image">`;
+                    }
+                }
+
+                // Load Chart 2: Scatter Plot
+                const response2 = await fetch(`${API_BASE_URL}/api/charts/scatter-price-days`);
+                if (response2.ok) {
+                    const data2 = await response2.json();
+                    if (data2.image) {
+                        document.getElementById('chart2-container').innerHTML =
+                            `<img src="${data2.image}" alt="Scatter Plot" class="chart-image">`;
+                    }
+                }
+
+                // Load Chart 3: Pie Chart
+                const response3 = await fetch(`${API_BASE_URL}/api/charts/pie-warehouse`);
+                if (response3.ok) {
+                    const data3 = await response3.json();
+                    if (data3.image) {
+                        document.getElementById('chart3-container').innerHTML =
+                            `<img src="${data3.image}" alt="Pie Chart" class="chart-image">`;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error loading charts:', error);
+                document.getElementById('chart1-container').innerHTML =
+                    '<p class="text-red-500 text-center">Failed to load chart</p>';
+                document.getElementById('chart2-container').innerHTML =
+                    '<p class="text-red-500 text-center">Failed to load chart</p>';
+                document.getElementById('chart3-container').innerHTML =
+                    '<p class="text-red-500 text-center">Failed to load chart</p>';
+            }
+        }
+
+        /**
+         * Main function to fetch data and coordinate rendering
+         */
+        async function fetchData() {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('content');
+            const errorDiv = document.getElementById('error-message');
+            const errorDetails = document.getElementById('error-details');
+
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+
+            try {
+                const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000'
+                    : 'https://inventory-analysis-api.onrender.com';
+
+                const response = await fetch(`${API_BASE_URL}/api/report`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                const products = data.products;
+                const suggestionsMarkdown = data.suggestions;
+
+                // Update header
+                document.getElementById('analysis-date').textContent = products.analysis_date || 'N/A';
+                document.getElementById('analysis-period').textContent = products.analysis_period || 'N/A';
+
+                // Render AI Suggestions
+                const suggestionsHtml = parseMarkdownTable(suggestionsMarkdown);
+                document.getElementById('suggestions-container').innerHTML = suggestionsHtml;
+
+                // Render Product Table
+                renderProductTable(products.slow_moving_products);
+
+                // Load Python-generated charts
+                await loadCharts();
+
+                // Show content
+                content.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                errorDetails.textContent = `Details: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', fetchData);
+
+    </script>
+</body>
+</html>
