@@ -21,7 +21,7 @@ from ChartDesign import ChartDesign
 app = Flask(__name__)
 # start CORS
 CORS(app, origins=[
-    "https://wan519.github.io",  # GitHub Pages
+    "https://weiheppp.github.io",  # GitHub Pages
     "http://127.0.0.1:5000",     # 本地测试
     "http://localhost:5000"
 ])
