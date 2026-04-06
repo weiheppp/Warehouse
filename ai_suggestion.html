@@ -351,7 +351,7 @@
             try {
                 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? 'http://localhost:5000'
-                    : 'https://inventory-analysis-api.onrender.com';
+                    : 'https://warehouse-sdng.onrender.com';
 
                 const response = await fetch(`${API_BASE_URL}/api/report`);
                 if (!response.ok) {
